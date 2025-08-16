@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+}
+
+enum TaskStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(USER)
+  address   String
+  phone     String
+  image     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  LeaveRequest LeaveRequest[]
+  Attendance   Attendance[]
+  Task         Task[]
+
+  @@map("users")
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  uuid      String           @unique @default(uuid())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  status    AttendanceStatus @default(ABSENT)
+  date      DateTime         @default(now()) @db.Date
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([userId, date])
+  @@map("attendance")
+}
+
+model LeaveRequest {
+  id           Int         @id @default(autoincrement())
+  uuid         String      @unique @default(uuid())
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  date         DateTime    @db.Date
+  reason       String
+  status       LeaveStatus @default(PENDING)
+  adminComment String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@map("leave_requests")
+}
+
+model Task {
+  id            Int        @id @default(autoincrement())
+  uuid          String     @unique @default(uuid())
+  title         String
+  description   String // Rich text content from CKEditor
+  assignedTo    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  dueDate       DateTime?
+  status        TaskStatus @default(PENDING)
+  adminComment  String?
+  submitComment String?
+  submittedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@map("tasks")
+}
